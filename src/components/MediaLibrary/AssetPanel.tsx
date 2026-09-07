@@ -276,7 +276,7 @@ export const AssetPanel: React.FC = () => {
     const newClip: Clip = {
       id: 'text-' + Date.now(),
       trackId: 'v2',
-      name: `Text: ${textProps.content}`,
+      name: textProps.content,
       type: 'text',
       src: '',
       startTime: projectStore.getCurrentTime(),

@@ -28,6 +28,15 @@ export const PropertiesInspector: React.FC = () => {
 
   const selectedClip = projectStore.getSelectedClip();
 
+  // Auto-switch to Text tab when a text clip is selected
+  useEffect(() => {
+    if (selectedClip?.type === 'text') {
+      setActiveTab('text');
+    } else if (selectedClip?.type === 'audio') {
+      setActiveTab('audio');
+    }
+  }, [selectedClip?.id, selectedClip?.type]);
+
   if (!selectedClip) {
     return (
       <div className="w-80 bg-[#121620] border-l border-slate-800 flex flex-col items-center justify-center p-6 text-center select-none z-20">
@@ -68,8 +77,24 @@ export const PropertiesInspector: React.FC = () => {
   };
 
   const updateText = (partial: any) => {
+    const currentProps = selectedClip.textProps || {
+      content: selectedClip.name || 'YOUR TITLE',
+      font: 'Inter',
+      size: 56,
+      color: '#ffffff',
+      strokeColor: '#000000',
+      strokeWidth: 2,
+      backgroundColor: 'transparent',
+      bgPadding: 16,
+      shadowColor: 'rgba(0,0,0,0.8)',
+      shadowBlur: 10,
+      textAlign: 'center',
+      animation: 'none'
+    };
+    const updated = { ...currentProps, ...partial };
     projectStore.updateClip(selectedClip.id, {
-      textProps: { ...(selectedClip.textProps || {}), ...partial } as any
+      textProps: updated,
+      name: partial.content !== undefined ? (partial.content ? partial.content.slice(0, 25) : 'Empty Text') : selectedClip.name
     });
   };
 
@@ -167,10 +192,43 @@ export const PropertiesInspector: React.FC = () => {
             <span>Detach Audio to Separate Track</span>
           </button>
         )}
+
+        {/* Text Quick Edit Card */}
+        {selectedClip.type === 'text' && (
+          <div className="p-3 bg-gradient-to-r from-amber-950/50 to-orange-950/50 border border-amber-500/50 rounded-xl space-y-2 shadow-lg">
+            <div className="flex items-center justify-between text-xs font-bold text-amber-300">
+              <span className="flex items-center space-x-1.5">
+                <Type className="w-3.5 h-3.5 text-amber-400" />
+                <span>Text Content:</span>
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">{(selectedClip.textProps?.content || '').length} chars</span>
+            </div>
+            <textarea
+              rows={2}
+              value={selectedClip.textProps?.content ?? ''}
+              onChange={(e) => updateText({ content: e.target.value })}
+              placeholder="Type your title or subtitle here..."
+              className="w-full bg-black/80 border border-amber-500/60 focus:border-amber-400 rounded-lg p-2.5 text-sm text-white font-bold resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+            />
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
       <div className="flex items-center justify-around bg-[#0e1118]/80 border-b border-slate-800 px-1 py-1.5 text-slate-400">
+        {selectedClip.type === 'text' && (
+          <button
+            onClick={() => setActiveTab('text')}
+            className={`flex items-center space-x-1 px-2.5 py-1 rounded text-xs transition-colors ${
+              activeTab === 'text' ? 'text-amber-400 bg-amber-950/60 border border-amber-500/40 font-bold' : 'hover:text-slate-200'
+            }`}
+            title="Typography & Fonts"
+          >
+            <Type className="w-3.5 h-3.5" />
+            <span>Text Style</span>
+          </button>
+        )}
+
         <button
           onClick={() => setActiveTab('transform')}
           className={`px-2 py-1 rounded text-xs transition-colors ${
@@ -181,7 +239,7 @@ export const PropertiesInspector: React.FC = () => {
           <Sliders className="w-3.5 h-3.5" />
         </button>
 
-        {selectedClip.type !== 'audio' && (
+        {selectedClip.type !== 'audio' && selectedClip.type !== 'text' && (
           <button
             onClick={() => setActiveTab('color')}
             className={`px-2 py-1 rounded text-xs transition-colors ${
@@ -214,18 +272,6 @@ export const PropertiesInspector: React.FC = () => {
             title="Audio DSP"
           >
             <Volume2 className="w-3.5 h-3.5" />
-          </button>
-        )}
-
-        {selectedClip.type === 'text' && (
-          <button
-            onClick={() => setActiveTab('text')}
-            className={`px-2 py-1 rounded text-xs transition-colors ${
-              activeTab === 'text' ? 'text-indigo-400 bg-indigo-950/40 font-semibold' : 'hover:text-slate-200'
-            }`}
-            title="Typography"
-          >
-            <Type className="w-3.5 h-3.5" />
           </button>
         )}
 
@@ -601,23 +647,64 @@ export const PropertiesInspector: React.FC = () => {
         )}
 
         {/* TEXT TAB */}
-        {activeTab === 'text' && selectedClip.textProps && (
-          <div className="space-y-3.5">
+        {activeTab === 'text' && (
+          <div className="space-y-4">
+            {/* Quick Title Presets */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Quick Presets</span>
+              <div className="flex flex-wrap gap-1.5">
+                {['WEEDIT', 'NEW REEL', 'SUBSCRIBE', 'EPIC MOMENT', 'BREAKING'].map((preset) => (
+                  <button
+                    key={preset}
+                    onClick={() => updateText({ content: preset })}
+                    className="px-2 py-1 rounded bg-slate-900 hover:bg-amber-950/60 border border-slate-800 hover:border-amber-500/50 text-[10px] font-bold text-slate-300 hover:text-amber-300 transition-colors"
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Main Text Content Input */}
             <div className="space-y-1">
-              <span className="text-[10px] text-slate-400">Text Content</span>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Text Content</span>
               <textarea
-                rows={2}
-                value={selectedClip.textProps.content}
+                rows={3}
+                value={selectedClip.textProps?.content ?? ''}
                 onChange={(e) => updateText({ content: e.target.value })}
-                className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded p-2 text-xs text-white resize-none focus:outline-none"
+                placeholder="Type your text or title here..."
+                className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg p-2.5 text-xs text-white font-medium resize-none focus:outline-none"
               />
+            </div>
+
+            {/* Quick Color Swatches */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Quick Text Colors</span>
+              <div className="flex items-center space-x-2">
+                {[
+                  { color: '#ffffff', label: 'White' },
+                  { color: '#facc15', label: 'Yellow' },
+                  { color: '#38bdf8', label: 'Cyan' },
+                  { color: '#ec4899', label: 'Pink' },
+                  { color: '#22c55e', label: 'Lime' },
+                  { color: '#a855f7', label: 'Purple' },
+                ].map((sw) => (
+                  <button
+                    key={sw.color}
+                    onClick={() => updateText({ color: sw.color })}
+                    style={{ backgroundColor: sw.color }}
+                    className="w-6 h-6 rounded-full border border-white/20 hover:scale-110 shadow-sm transition-transform"
+                    title={sw.label}
+                  />
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <span className="text-[10px] text-slate-400">Font Family</span>
                 <select
-                  value={selectedClip.textProps.font}
+                  value={selectedClip.textProps?.font || 'Inter'}
                   onChange={(e) => updateText({ font: e.target.value })}
                   className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none"
                 >
@@ -632,7 +719,7 @@ export const PropertiesInspector: React.FC = () => {
                 <span className="text-[10px] text-slate-400">Font Size (px)</span>
                 <input
                   type="number"
-                  value={selectedClip.textProps.size}
+                  value={selectedClip.textProps?.size || 56}
                   onChange={(e) => updateText({ size: parseInt(e.target.value) || 30 })}
                   className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none"
                 />
@@ -641,10 +728,10 @@ export const PropertiesInspector: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <span className="text-[10px] text-slate-400">Fill Color</span>
+                <span className="text-[10px] text-slate-400">Custom Fill Color</span>
                 <input
                   type="color"
-                  value={selectedClip.textProps.color}
+                  value={selectedClip.textProps?.color || '#ffffff'}
                   onChange={(e) => updateText({ color: e.target.value })}
                   className="w-full h-8 bg-transparent cursor-pointer"
                 />
@@ -654,7 +741,7 @@ export const PropertiesInspector: React.FC = () => {
                 <span className="text-[10px] text-slate-400">Outline Color</span>
                 <input
                   type="color"
-                  value={selectedClip.textProps.strokeColor}
+                  value={selectedClip.textProps?.strokeColor || '#000000'}
                   onChange={(e) => updateText({ strokeColor: e.target.value })}
                   className="w-full h-8 bg-transparent cursor-pointer"
                 />
@@ -664,9 +751,9 @@ export const PropertiesInspector: React.FC = () => {
             <div className="space-y-1">
               <span className="text-[10px] text-slate-400">Kinetic Animation</span>
               <select
-                value={selectedClip.textProps.animation}
+                value={selectedClip.textProps?.animation || 'none'}
                 onChange={(e) => updateText({ animation: e.target.value as any })}
-                className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none"
+                className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none"
               >
                 <option value="none">None (Static)</option>
                 <option value="typewriter">Typewriter Reveal</option>
