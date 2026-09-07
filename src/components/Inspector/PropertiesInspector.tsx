@@ -18,6 +18,8 @@ import type { Clip, ColorGrading, Keyframe } from '../../types';
 export const PropertiesInspector: React.FC = () => {
   const [, setTick] = useState(0);
   const [activeTab, setActiveTab] = useState<'transform' | 'color' | 'chroma' | 'audio' | 'text' | 'transition'>('transform');
+  // Local text state — prevents focus loss on every keystroke
+  const [localText, setLocalText] = useState('');
 
   useEffect(() => {
     const unsub = projectStore.subscribe(() => setTick((t) => t + 1));
@@ -28,9 +30,10 @@ export const PropertiesInspector: React.FC = () => {
 
   const selectedClip = projectStore.getSelectedClip();
 
-  // Auto-switch to Text tab when a text clip is selected
+  // Sync localText when a different clip is selected
   useEffect(() => {
     if (selectedClip?.type === 'text') {
+      setLocalText(selectedClip.textProps?.content ?? '');
       setActiveTab('text');
     } else if (selectedClip?.type === 'audio') {
       setActiveTab('audio');
@@ -92,11 +95,44 @@ export const PropertiesInspector: React.FC = () => {
       animation: 'none'
     };
     const updated = { ...currentProps, ...partial };
-    projectStore.updateClip(selectedClip.id, {
+    // Use live update (no undo push per keystroke) for instant canvas preview
+    projectStore.updateClipLive(selectedClip.id, {
       textProps: updated,
       name: partial.content !== undefined ? (partial.content ? partial.content.slice(0, 25) : 'Empty Text') : selectedClip.name
     });
   };
+
+  // Commit text to undo stack on blur (one undo entry per edit session)
+  const commitText = () => {
+    if (selectedClip?.type === 'text') {
+      const base = selectedClip.textProps || {
+        content: localText,
+        font: 'Inter',
+        size: 56,
+        color: '#ffffff',
+        strokeColor: '#000000',
+        strokeWidth: 2,
+        backgroundColor: 'transparent',
+        bgPadding: 16,
+        shadowColor: 'rgba(0,0,0,0.8)',
+        shadowBlur: 10,
+        textAlign: 'center' as const,
+        animation: 'none' as const
+      };
+      projectStore.updateClip(selectedClip.id, {
+        textProps: { ...base, content: localText },
+        name: localText ? localText.slice(0, 25) : 'Empty Text'
+      });
+    }
+  };
+
+  // Handle textarea change — updates local state AND pushes live to canvas
+  const handleTextChange = (val: string) => {
+    setLocalText(val);
+    updateText({ content: val });
+  };
+
+
 
   // Add Keyframe at current playhead time
   const handleAddKeyframe = (property: 'scale' | 'opacity' | 'x' | 'y' | 'rotation') => {
@@ -165,7 +201,7 @@ export const PropertiesInspector: React.FC = () => {
   };
 
   return (
-    <div className="w-80 bg-[#121620] border-l border-slate-800 flex flex-col h-full select-none z-20">
+    <div className="w-80 bg-[#121620] border-l border-slate-800 flex flex-col h-full z-20">
       {/* Clip Header Title */}
       <div className="p-3 bg-[#0e1118] border-b border-slate-800 flex flex-col space-y-2">
         <div className="flex items-center justify-between">
@@ -205,10 +241,11 @@ export const PropertiesInspector: React.FC = () => {
             </div>
             <textarea
               rows={2}
-              value={selectedClip.textProps?.content ?? ''}
-              onChange={(e) => updateText({ content: e.target.value })}
+              value={localText}
+              onChange={(e) => handleTextChange(e.target.value)}
+              onBlur={commitText}
               placeholder="Type your title or subtitle here..."
-              className="w-full bg-black/80 border border-amber-500/60 focus:border-amber-400 rounded-lg p-2.5 text-sm text-white font-bold resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              className="w-full bg-black/80 border border-amber-500/60 focus:border-amber-400 rounded-lg p-2.5 text-sm text-white font-bold resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/40 select-text"
             />
           </div>
         )}
@@ -670,10 +707,11 @@ export const PropertiesInspector: React.FC = () => {
               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Text Content</span>
               <textarea
                 rows={3}
-                value={selectedClip.textProps?.content ?? ''}
-                onChange={(e) => updateText({ content: e.target.value })}
+                value={localText}
+                onChange={(e) => handleTextChange(e.target.value)}
+                onBlur={commitText}
                 placeholder="Type your text or title here..."
-                className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg p-2.5 text-xs text-white font-medium resize-none focus:outline-none"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg p-2.5 text-xs text-white font-medium resize-none focus:outline-none select-text"
               />
             </div>
 

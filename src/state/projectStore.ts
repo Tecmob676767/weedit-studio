@@ -255,6 +255,16 @@ export class ProjectStore {
     }
   }
 
+  /** Update a clip without pushing to undo stack — used for live typing / realtime edits */
+  public updateClipLive(clipId: string, updates: Partial<Clip>) {
+    const idx = this.project.clips.findIndex((c) => c.id === clipId);
+    if (idx !== -1) {
+      this.project.clips[idx] = { ...this.project.clips[idx], ...updates };
+      this.saveToStorage();
+      this.notify();
+    }
+  }
+
   public deleteClip(clipId: string) {
     this.pushUndo();
     this.project.clips = this.project.clips.filter((c) => c.id !== clipId);
