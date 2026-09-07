@@ -138,6 +138,25 @@ export class Renderer {
         this.renderClip(clip, time, width, height);
       }
     }
+
+    // Watermark — tiny, bottom-right corner
+    this.drawWatermark(width, height);
+  }
+
+  private drawWatermark(width: number, height: number) {
+    const ctx = this.ctx;
+    const fontSize = Math.max(14, Math.round(width * 0.012));
+    ctx.save();
+    ctx.globalAlpha = 0.28;
+    ctx.font = `600 ${fontSize}px Inter, Arial, sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    // Soft shadow for readability
+    ctx.shadowColor = 'rgba(0,0,0,0.7)';
+    ctx.shadowBlur = 4;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('WeEdit Studio', width - Math.round(width * 0.012), height - Math.round(height * 0.01));
+    ctx.restore();
   }
 
   private renderClip(clip: Clip, time: number, canvasWidth: number, canvasHeight: number) {
