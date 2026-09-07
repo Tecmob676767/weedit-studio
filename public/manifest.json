@@ -1,0 +1,19 @@
+{
+  "name": "WeEdit Studio - Pro Video & Media PWA",
+  "short_name": "WeEdit",
+  "description": "Ultra-advanced browser-native video and multimedia studio surpassing CapCut and VN with multi-track timeline, WebGL filters, audio DSP, and offline rendering.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0f12",
+  "theme_color": "#6366f1",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["video", "multimedia", "productivity", "utilities"]
+}
